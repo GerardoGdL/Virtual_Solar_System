@@ -49,28 +49,26 @@ var initialized := false
 # Sphere data is pused to the compute shader
 
 var sphere_data = [
-	{
-		"center": Vector3(0.0, 0.0, 0.0),
-		"radius": 1.5,
-		"material": 0
-	}
-	# add additional spheres as needed
-	#,
-	#{
-	#	"center": Vector3(0.0, 0.0, 0.0),
-	#	"radius": 1.0,
-	#	"material": 1
-	#},
-	#{
-	#	"center": Vector3(1.8, 0.0, 0.0),
-	#	"radius": 1.0,
-	#	"material": 2
-	#},
-	#{
-	#	"center": Vector3(0.0, 2.0, -1.0),
-	#	"radius": 0.65,
-	#	"material": 3
-	#}
+    {
+        "center": Vector3(0.0, 0.0, 0.0),
+        "radius": 1.5,
+        "material": 0
+    },
+    {
+        "center": Vector3(4.0, 0.0, 0.0),
+        "radius": 0.65,
+        "material": 1
+    },
+    {
+        "center": Vector3(5.2, 0.0, 0.0),
+        "radius": 0.25,
+        "material": 2
+    },
+    {
+        "center": Vector3(0.0, 0.0, 0.0),
+        "radius": 100.0,
+        "material": 3
+    }
 ]
 
 

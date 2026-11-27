@@ -2,9 +2,10 @@
 
 [ext_resource type="Script" uid="uid://du6vff5jmqe42" path="res://scripts/camera_rig.gd" id="1_o5qli"]
 [ext_resource type="Script" uid="uid://cjslc1r71gxbp" path="res://scripts/ray_tracer.gd" id="2_sugp2"]
-
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_0wfyh"]
-load_path = "res://.godot/imported/checkerboard.jpeg-d2d763cef206e70d7a5fce32c2f4264b.ctex"
+[ext_resource type="Texture2D" uid="uid://bj6itlu7cjc3y" path="res://textures/sun.jpg" id="3_tefeu"]
+[ext_resource type="Texture2D" uid="uid://b6ulykc2ir8b0" path="res://textures/earth.jpg" id="4_o6xl0"]
+[ext_resource type="Texture2D" uid="uid://bpd270htue16u" path="res://textures/moon.jpg" id="5_tipki"]
+[ext_resource type="Texture2D" uid="uid://b01o817yr2qa0" path="res://textures/background.jpg" id="6_85g3d"]
 
 [node name="Main" type="Node3D" unique_id=563772554]
 
@@ -19,7 +20,7 @@ far = 100.0
 
 [node name="RayTracer" type="Node" parent="." unique_id=1157630252]
 script = ExtResource("2_sugp2")
-texture_slots = Array[Texture2D]([SubResource("CompressedTexture2D_0wfyh")])
+texture_slots = Array[Texture2D]([ExtResource("3_tefeu"), ExtResource("4_o6xl0"), ExtResource("5_tipki"), ExtResource("6_85g3d")])
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1882888382]
 
