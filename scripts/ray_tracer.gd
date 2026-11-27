@@ -16,10 +16,15 @@ const WORKGROUP_SIZE = 8
 @export var display_path: NodePath = \
     "../CanvasLayer/TextureRect"
 
-# The animation is controlled by a single state variable that
-# is manipulated via keyboard controls.
-var rotation_radians := 0.0
-@export var rotation_speed := 1.5
+# Simulation time, measured relative to Earth days.
+var simulation_time := 0.0
+
+# Number of simulated days that pass per real-world second.
+@export var time_speed := 10.0
+
+# Orbital distances.
+@export var earth_orbit_radius := 4.0
+@export var moon_orbit_radius := 1.2
 
 var rd: RenderingDevice
 var shader: RID
@@ -49,35 +54,65 @@ var initialized := false
 # Sphere data is pused to the compute shader
 
 var sphere_data = [
-    {
-        "center": Vector3(0.0, 0.0, 0.0),
-        "radius": 1.5,
-        "material": 0
-    },
-    {
-        "center": Vector3(4.0, 0.0, 0.0),
-        "radius": 0.65,
-        "material": 1
-    },
-    {
-        "center": Vector3(5.2, 0.0, 0.0),
-        "radius": 0.25,
-        "material": 2
-    },
-    {
-        "center": Vector3(0.0, 0.0, 0.0),
-        "radius": 100.0,
-        "material": 3
-    }
+	{
+		"center": Vector3(0.0, 0.0, 0.0),
+		"radius": 1.5,
+		"material": 0
+	},
+	{
+		"center": Vector3(4.0, 0.0, 0.0),
+		"radius": 0.65,
+		"material": 1
+	},
+	{
+		"center": Vector3(5.2, 0.0, 0.0),
+		"radius": 0.25,
+		"material": 2
+	},
+	{
+		"center": Vector3(0.0, 0.0, 0.0),
+		"radius": 100.0,
+		"material": 3
+	}
 ]
 
+# --------------------------------------------------
+# ROTATION CALCULATIONS
+# --------------------------------------------------
+
+# TAU is equivalent to 2*pi
+
+func update_orbit_positions():
+	# Earth orbits the Sun once every 365 days.
+	var earth_angle = TAU * simulation_time / 365.0
+
+	var earth_position = Vector3(
+		earth_orbit_radius * cos(earth_angle),
+		earth_orbit_radius * sin(earth_angle),
+		0.0
+	)
+
+	# Moon orbits Earth once every 27 days.
+	var moon_angle = TAU * simulation_time / 27.0
+
+	var moon_relative_position = Vector3(
+		moon_orbit_radius * cos(moon_angle),
+		moon_orbit_radius * sin(moon_angle),
+		0.0
+	)
+
+	# The Moon's position is relative to Earth's position.
+	var moon_position = earth_position + moon_relative_position
+
+	# Update the sphere positions.
+	sphere_data[1]["center"] = earth_position
+	sphere_data[2]["center"] = moon_position
 
 # --------------------------------------------------
 # INITIALIZATION
 # --------------------------------------------------
 
 func _ready():
-
 	camera = get_node(camera_path)
 	display = get_node(display_path)
 
@@ -89,6 +124,10 @@ func _ready():
 
 	create_compute_shader()
 	create_output_texture()
+
+	# Calculates the initial positions before creating the buffer
+	update_orbit_positions() 
+
 	create_sphere_buffer()
 	create_sampler()
 	create_input_textures()
@@ -181,6 +220,36 @@ func create_sphere_buffer():
 		bytes
 	)
 
+# --------------------------------------------------
+# UPDATE THE GPU SHADER BUFFER
+# --------------------------------------------------
+
+func update_sphere_buffer():
+	var data := PackedFloat32Array()
+
+	for sphere in sphere_data:
+		var center: Vector3 = sphere["center"]
+		var radius: float = sphere["radius"]
+		var material: int = sphere["material"]
+
+		data.append(center.x)
+		data.append(center.y)
+		data.append(center.z)
+		data.append(radius)
+
+		data.append(float(material))
+		data.append(0.0)
+		data.append(0.0)
+		data.append(0.0)
+
+	var bytes = data.to_byte_array()
+
+	rd.buffer_update(
+		sphere_buffer,
+		0,
+		bytes.size(),
+		bytes
+	)
 
 # --------------------------------------------------
 # CREATE SAMPLER FOR TEXTURE(s)
@@ -369,7 +438,7 @@ func get_camera_data() -> PackedByteArray:
 	
 	# Rotation information / animation state
 	data.append_array(PackedFloat32Array([
-		rotation_radians,
+		0.0,
 		0.0,
 		0.0,
 		0.0
@@ -449,17 +518,19 @@ func _process(delta):
 	if not initialized:
 		return
 
-	# Rotate using keyboard input.
-	if Input.is_action_pressed("rotate_left"):
-		rotation_radians -= rotation_speed * delta
+	var time_direction := 0.0
 
-	if Input.is_action_pressed("rotate_right"):
-		rotation_radians += rotation_speed * delta
+	if Input.is_key_pressed(KEY_RIGHT):
+		time_direction += 1.0
 
+	if Input.is_key_pressed(KEY_LEFT):
+		time_direction -= 1.0
+
+	simulation_time += time_direction * time_speed * delta
+
+	update_orbit_positions()
+	update_sphere_buffer()
 	render_frame()
-
-
-
 
 # --------------------------------------------------
 # CLEANUP
