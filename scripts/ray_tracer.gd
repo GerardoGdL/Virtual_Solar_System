@@ -57,27 +57,31 @@ var sphere_data = [
 	{
 		"center": Vector3(0.0, 0.0, 0.0),
 		"radius": 1.5,
-		"material": 0
+		"material": 0,
+		"rotation": 0.0
 	},
 	{
 		"center": Vector3(4.0, 0.0, 0.0),
 		"radius": 0.65,
-		"material": 1
+		"material": 1,
+		"rotation": 0.0
 	},
 	{
 		"center": Vector3(5.2, 0.0, 0.0),
 		"radius": 0.25,
-		"material": 2
+		"material": 2,
+		"rotation": 0.0
 	},
 	{
 		"center": Vector3(0.0, 0.0, 0.0),
 		"radius": 100.0,
-		"material": 3
+		"material": 3,
+		"rotation": 0.0
 	}
 ]
 
 # --------------------------------------------------
-# ROTATION CALCULATIONS
+# POSITION CALCULATIONS
 # --------------------------------------------------
 
 # TAU is equivalent to 2*pi
@@ -109,6 +113,28 @@ func update_orbit_positions():
 	sphere_data[2]["center"] = moon_position
 
 # --------------------------------------------------
+# ROTATION CALCULATIONS
+# --------------------------------------------------
+
+func update_axial_rotations():
+	# Sun rotates once every 27 days.
+	var sun_angle = TAU * simulation_time / 27.0
+
+	# Earth rotates once every day.
+	var earth_angle = TAU * simulation_time
+
+	# Moon rotates once every 27 days.
+	# This matches its orbital angular speed and keeps the same side facing Earth.
+	var moon_angle = TAU * simulation_time / 27.0
+
+	sphere_data[0]["rotation"] = sun_angle
+	sphere_data[1]["rotation"] = earth_angle
+	sphere_data[2]["rotation"] = moon_angle
+
+	# The background sphere does not rotate.
+	sphere_data[3]["rotation"] = 0.0
+
+# --------------------------------------------------
 # INITIALIZATION
 # --------------------------------------------------
 
@@ -127,6 +153,9 @@ func _ready():
 
 	# Calculates the initial positions before creating the buffer
 	update_orbit_positions() 
+
+	# Calculates the rotation
+	update_axial_rotations()
 
 	create_sphere_buffer()
 	create_sampler()
@@ -231,6 +260,7 @@ func update_sphere_buffer():
 		var center: Vector3 = sphere["center"]
 		var radius: float = sphere["radius"]
 		var material: int = sphere["material"]
+		var rotation: float = sphere["rotation"]
 
 		data.append(center.x)
 		data.append(center.y)
@@ -238,7 +268,7 @@ func update_sphere_buffer():
 		data.append(radius)
 
 		data.append(float(material))
-		data.append(0.0)
+		data.append(rotation)
 		data.append(0.0)
 		data.append(0.0)
 
@@ -529,6 +559,7 @@ func _process(delta):
 	simulation_time += time_direction * time_speed * delta
 
 	update_orbit_positions()
+	update_axial_rotations()
 	update_sphere_buffer()
 	render_frame()
 

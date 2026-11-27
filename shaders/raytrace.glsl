@@ -131,21 +131,14 @@ float intersect_sphere(
 
 
 vec2 sphere_uv(vec3 normal, float rotation_angle) {
+    vec3 n = normalize(normal);
 
-    // Calculate longitude and reverse u to match the texture orientation.
-    float u = 1 - (atan(normal.z, normal.x) /
-              (2.0 * 3.14159265) + 0.5);
+    // Longitude around the Z-axis.
+    float longitude = atan(n.y, n.x) - rotation_angle;
 
-    // Calculate latitude.
-    float v = acos(
-        clamp(normal.y, -1.0, 1.0)
-    ) / 3.14159265;
-
-    // Rotate texture around the polar axis.
-    u -= rotation_angle / (2.0 * 3.14159265);
-
-    // Wrap texture coordinates.
-    u = fract(u);
+    // Convert longitude and latitude to texture coordinates.
+    float u = fract(longitude / 6.28318530718 + 0.5);
+    float v = acos(clamp(n.z, -1.0, 1.0)) / 3.14159265359;
 
     return vec2(u, v);
 }
@@ -239,31 +232,104 @@ void main() {
             hit_position - sphere.center_radius.xyz
         );
 
-        float rotation_angle = camera.texture_info.x;
-	  vec2 tex_uv = sphere_uv(normal, rotation_angle);
+        // Retrieve the sphere's individual texture rotation.
+        float rotation_angle = sphere.material.y;
+        vec2 tex_uv = sphere_uv(normal, rotation_angle);
 
         int material_id = int(sphere.material.x);
 
-        color = sample_material(material_id, tex_uv);
+        // Sample the sphere's texture.
+        vec3 albedo = sample_material(material_id, tex_uv);
 
-        // Simple directional lighting.
-        vec3 light_direction = normalize(
-            vec3(-1.0, 1.0, 2.0)
-        );
+        // Sun and background are not affected by lighting.
+        if (material_id == 0 || material_id == 3) {
 
-        float diffuse = max(
-            dot(normal, light_direction),
-            0.0
-        );
+            color = albedo;
 
-        float ambient = 0.2;
+        }
+        else {
 
-        color *= ambient + 0.8 * diffuse;
+            // --------------------------------------------------
+            // POINT LIGHT AT THE SUN
+            // --------------------------------------------------
+
+            vec3 light_position = spheres[0].center_radius.xyz;
+
+            vec3 to_light = light_position - hit_position;
+
+            float light_distance = length(to_light);
+
+            vec3 light_direction = normalize(to_light);
+
+            // Direction from surface toward the camera.
+            vec3 view_direction = normalize(
+                ray_origin - hit_position
+            );
+
+            // Halfway vector between light and view directions.
+            vec3 halfway_direction = normalize(
+                light_direction + view_direction
+            );
+
+            // --------------------------------------------------
+            // AMBIENT LIGHTING
+            // --------------------------------------------------
+
+            float ambient_strength = 0.06;
+
+            vec3 ambient = ambient_strength * albedo;
+
+            // --------------------------------------------------
+            // DIFFUSE LIGHTING
+            // --------------------------------------------------
+
+            float diffuse_strength = 0.94;
+
+            float diffuse_factor = max(
+                dot(normal, light_direction),
+                0.0
+            );
+
+            vec3 diffuse = diffuse_strength *
+                diffuse_factor * albedo;
+
+            // --------------------------------------------------
+            // SPECULAR LIGHTING
+            // --------------------------------------------------
+
+            float specular_strength = 0.25;
+            float shininess = 32.0;
+
+            float specular_factor = 0.0;
+
+            // Only produce highlights on surfaces facing the Sun.
+            if (diffuse_factor > 0.0) {
+
+                specular_factor = pow(
+                    max(dot(normal, halfway_direction), 0.0),
+                    shininess
+                );
+            }
+
+            vec3 specular = vec3(1.0) *
+                specular_strength * specular_factor;
+
+            // --------------------------------------------------
+            // LIGHT ATTENUATION
+            // --------------------------------------------------
+
+            float attenuation = 1.0 /
+                (1.0 + 0.025 * light_distance * light_distance);
+
+            // Combine all lighting components.
+            color = ambient +
+                attenuation * (diffuse + specular);
+        }
 
     }
     else {
 
-        // Background gradient.
+        // Background gradient if no sphere is intersected.
         float t = 0.5 * (ray_direction.y + 1.0);
 
         color = mix(
