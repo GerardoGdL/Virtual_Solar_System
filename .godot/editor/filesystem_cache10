@@ -3,13 +3,13 @@
 DECLARARION AND REFLECTION.txt::TextFile::-1::1795647720::0::1::::<><><>0<>0<><>::
 icon.svg::CompressedTexture2D::2428453347013644074::1795647720::1795648301::1::::<><><>0<>0<>e8e7e511d76e87d1ab7e93ad119ce327<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
 README.md::TextFile::-1::1795647720::0::1::::<><><>0<>0<><>::
-::res://scenes/::1795738493
-main.tscn::PackedScene::4612548066669435912::1795738493::0::1::::<><><>0<>0<><>::uid://du6vff5jmqe42::::res://scripts/camera_rig.gd<>uid://cjslc1r71gxbp::::res://scripts/ray_tracer.gd<>uid://bj6itlu7cjc3y::::res://textures/sun.jpg<>uid://b6ulykc2ir8b0::::res://textures/earth.jpg<>uid://bpd270htue16u::::res://textures/moon.jpg<>uid://b01o817yr2qa0::::res://textures/background.jpg
+::res://scenes/::1795751559
+main.tscn::PackedScene::4612548066669435912::1795751559::0::1::::<><><>0<>0<><>::uid://du6vff5jmqe42::::res://scripts/camera_rig.gd<>uid://cjslc1r71gxbp::::res://scripts/ray_tracer.gd<>uid://bj6itlu7cjc3y::::res://textures/sun.jpg<>uid://b6ulykc2ir8b0::::res://textures/earth.jpg<>uid://bpd270htue16u::::res://textures/moon.jpg<>uid://b01o817yr2qa0::::res://textures/background.jpg
 ::res://scripts/::1795739774
 camera_rig.gd::GDScript::8628318929419896677::1795647720::0::1::::<>Node3D<><>0<>0<><>::
-ray_tracer.gd::GDScript::5442372611567530013::1795741132::0::1::::<>Node<><>0<>0<><>::
-::res://shaders/::1795741439
-raytrace.glsl::RDShaderFile::7624077500460805518::1795748406::1795748409::1::::<><><>0<>0<>c2e2053ec9eb706aafbbd14fc048fa61<>res://.godot/imported/raytrace.glsl-ec3e4a95fb2e7839ae840fee8fb7a91e.res::
+ray_tracer.gd::GDScript::5442372611567530013::1795752200::0::1::::<>Node<><>0<>0<><>::
+::res://shaders/::1795752534
+raytrace.glsl::RDShaderFile::7624077500460805518::1795752647::1795752653::1::::<><><>0<>0<>c2e2053ec9eb706aafbbd14fc048fa61<>res://.godot/imported/raytrace.glsl-ec3e4a95fb2e7839ae840fee8fb7a91e.res::
 ::res://textures/::1795648302
 background.jpg::CompressedTexture2D::4195725981502149569::1795647720::1795648302::1::::<><><>0<>0<>7627cb10049376de1218f7e3318e37ad<>res://.godot/imported/background.jpg-73537266ec22d7a925b3e0de9a2aabda.ctex::
 checkerboard.jpeg::CompressedTexture2D::4488758453001742014::1795647720::1795648301::1::::<><><>0<>0<>48207898603b4ecadbba961f9ce23fe1<>res://.godot/imported/checkerboard.jpeg-d2d763cef206e70d7a5fce32c2f4264b.ctex::

@@ -125,6 +125,78 @@ float intersect_sphere(
 }
 
 
+bool is_in_shadow(
+    vec3 hit_position,
+    vec3 normal,
+    vec3 light_position,
+    int sphere_count,
+    int current_sphere
+) {
+    // Move the starting point slightly away from the surface.
+    // This prevents the ray from intersecting the sphere it just hit.
+    vec3 shadow_origin = hit_position + normal * 0.001;
+
+    vec3 to_light = light_position - shadow_origin;
+    float light_distance = length(to_light);
+    vec3 shadow_direction = normalize(to_light);
+
+    // Check whether another sphere blocks the light.
+    for (int i = 0; i < sphere_count; i++) {
+
+        // Ignore the Sun, current sphere and the background sphere
+        if (i == 0 || i == current_sphere || i == 3) {
+            continue;
+        }
+
+        vec3 center = spheres[i].center_radius.xyz;
+        float radius = spheres[i].center_radius.w;
+
+        float t = intersect_sphere(
+            shadow_origin,
+            shadow_direction,
+            center,
+            radius
+        );
+
+        // An intersection before the light means this point is shadowed.
+        if (t > 0.001 && t < light_distance) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+// --------------------------------------------------
+// ROTATION FUNCTIONS
+// --------------------------------------------------
+
+// Rotate a vector around the X axis.
+vec3 rotate_x(vec3 v, float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    return vec3(
+        v.x,
+        c * v.y - s * v.z,
+        s * v.y + c * v.z
+    );
+}
+
+
+// Rotate a vector around the Y axis.
+vec3 rotate_y(vec3 v, float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    return vec3(
+        c * v.x + s * v.z,
+        v.y,
+        -s * v.x + c * v.z
+    );
+}
+
 // --------------------------------------------------
 // SPHERICAL TEXTURE COORDINATES
 // --------------------------------------------------
@@ -232,11 +304,32 @@ void main() {
             hit_position - sphere.center_radius.xyz
         );
 
-        // Retrieve the sphere's individual texture rotation.
+        // Retrieve the sphere's individual orientation.
         float rotation_angle = sphere.material.y;
-        vec2 tex_uv = sphere_uv(normal, rotation_angle);
+        float orbital_tilt = sphere.material.z;
+        float axial_tilt = sphere.material.w;
 
         int material_id = int(sphere.material.x);
+
+        vec3 texture_normal;
+
+        if (material_id == 2) {
+            // The Moon's axial tilt partially cancels its orbital inclination.
+            texture_normal = rotate_x(
+                normal,
+                axial_tilt - orbital_tilt
+            );
+        }
+        else {
+            // Earth's axial tilt is relative to the ecliptic plane.
+            texture_normal = rotate_y(
+                normal,
+                -axial_tilt
+            );
+        }
+
+        // Calculate texture coordinates using the transformed normal.
+        vec2 tex_uv = sphere_uv(texture_normal, rotation_angle);
 
         // Sample the sphere's texture.
         vec3 albedo = sample_material(material_id, tex_uv);
@@ -279,6 +372,15 @@ void main() {
 
             vec3 ambient = ambient_strength * albedo;
 
+            // Check whether another sphere blocks the sunlight.
+            bool shadowed = is_in_shadow(
+                hit_position,
+                normal,
+                light_position,
+                sphere_count,
+                closest_sphere
+            );
+
             // --------------------------------------------------
             // DIFFUSE LIGHTING
             // --------------------------------------------------
@@ -290,29 +392,27 @@ void main() {
                 0.0
             );
 
-            vec3 diffuse = diffuse_strength *
-                diffuse_factor * albedo;
+            vec3 diffuse = vec3(0.0);
+            vec3 specular = vec3(0.0);
 
-            // --------------------------------------------------
-            // SPECULAR LIGHTING
-            // --------------------------------------------------
+            // Only calculate direct lighting if the point is not shadowed.
+            if (!shadowed && diffuse_factor > 0.0) {
 
-            float specular_strength = 0.25;
-            float shininess = 32.0;
+                diffuse = diffuse_strength * diffuse_factor * albedo;
 
-            float specular_factor = 0.0;
+                // PHONG SPECULAR
+                vec3 reflect_direction = reflect(-light_direction, normal);
 
-            // Only produce highlights on surfaces facing the Sun.
-            if (diffuse_factor > 0.0) {
+                float specular_strength = 0.25;
+                float shininess = 32.0;
 
-                specular_factor = pow(
-                    max(dot(normal, halfway_direction), 0.0),
+                float specular_factor = pow(
+                    max(dot(view_direction, reflect_direction), 0.0),
                     shininess
                 );
-            }
 
-            vec3 specular = vec3(1.0) *
-                specular_strength * specular_factor;
+                specular = vec3(1.0) * specular_strength * specular_factor;
+            }
 
             // --------------------------------------------------
             // LIGHT ATTENUATION

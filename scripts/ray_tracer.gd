@@ -20,11 +20,20 @@ const WORKGROUP_SIZE = 8
 var simulation_time := 0.0
 
 # Number of simulated days that pass per real-world second.
-@export var time_speed := 10.0
+@export var time_speed := 1.0
 
 # Orbital distances.
 @export var earth_orbit_radius := 4.0
 @export var moon_orbit_radius := 1.2
+
+# Orbital plane inclinations, measured in degrees.
+@export var earth_orbit_tilt_degrees := 0.0
+@export var moon_orbit_tilt_degrees := 5.14
+
+# Axial tilts relative to each body's orbital plane.
+@export var sun_axial_tilt_degrees := 0.0
+@export var earth_axial_tilt_degrees := 23.44
+@export var moon_axial_tilt_degrees := 6.68
 
 var rd: RenderingDevice
 var shader: RID
@@ -58,25 +67,33 @@ var sphere_data = [
 		"center": Vector3(0.0, 0.0, 0.0),
 		"radius": 1.5,
 		"material": 0,
-		"rotation": 0.0
+		"rotation": 0.0,
+		"orbital_tilt": 0.0,
+		"axial_tilt": 0.0
 	},
 	{
 		"center": Vector3(4.0, 0.0, 0.0),
 		"radius": 0.65,
 		"material": 1,
-		"rotation": 0.0
+		"rotation": 0.0,
+		"orbital_tilt": 0.0,
+		"axial_tilt": 23.44
 	},
 	{
 		"center": Vector3(5.2, 0.0, 0.0),
 		"radius": 0.25,
 		"material": 2,
-		"rotation": 0.0
+		"rotation": 0.0,
+		"orbital_tilt": 0.0,
+		"axial_tilt": 6.68
 	},
 	{
 		"center": Vector3(0.0, 0.0, 0.0),
 		"radius": 100.0,
 		"material": 3,
-		"rotation": 0.0
+		"rotation": 0.0,
+		"orbital_tilt": 0.0,
+		"axial_tilt": 0.0
 	}
 ]
 
@@ -96,6 +113,14 @@ func update_orbit_positions():
 		0.0
 	)
 
+	# Rotate Earth's orbital plane around the X axis.
+	var earth_orbit_basis = Basis(
+		Vector3.RIGHT,
+		deg_to_rad(earth_orbit_tilt_degrees)
+	)
+
+	earth_position = earth_orbit_basis * earth_position
+
 	# Moon orbits Earth once every 27 days.
 	var moon_angle = TAU * simulation_time / 27.0
 
@@ -105,12 +130,37 @@ func update_orbit_positions():
 		0.0
 	)
 
-	# The Moon's position is relative to Earth's position.
+	# Tilt the Moon's orbital plane relative to Earth's orbital plane.
+	var moon_orbit_basis = Basis(
+		Vector3.RIGHT,
+		deg_to_rad(moon_orbit_tilt_degrees)
+	)
+
+	moon_relative_position = (
+		earth_orbit_basis
+		* moon_orbit_basis
+		* moon_relative_position
+	)
+
 	var moon_position = earth_position + moon_relative_position
 
 	# Update the sphere positions.
 	sphere_data[1]["center"] = earth_position
 	sphere_data[2]["center"] = moon_position
+
+	# Pass the orbital plane orientations to the shader.
+	sphere_data[0]["orbital_tilt"] = 0.0
+	sphere_data[1]["orbital_tilt"] = earth_orbit_tilt_degrees
+	sphere_data[2]["orbital_tilt"] = (
+		earth_orbit_tilt_degrees + moon_orbit_tilt_degrees
+	)
+	sphere_data[3]["orbital_tilt"] = 0.0
+
+	# Pass the axial tilts to the shader.
+	sphere_data[0]["axial_tilt"] = sun_axial_tilt_degrees
+	sphere_data[1]["axial_tilt"] = earth_axial_tilt_degrees
+	sphere_data[2]["axial_tilt"] = moon_axial_tilt_degrees
+	sphere_data[3]["axial_tilt"] = 0.0
 
 # --------------------------------------------------
 # ROTATION CALCULATIONS
@@ -229,6 +279,9 @@ func create_sphere_buffer():
 		var center: Vector3 = sphere["center"]
 		var radius: float = sphere["radius"]
 		var material: int = sphere["material"]
+		var rotation: float = sphere["rotation"]
+		var orbital_tilt: float = deg_to_rad(sphere["orbital_tilt"])
+		var axial_tilt: float = deg_to_rad(sphere["axial_tilt"])
 
 		# First vec4: center.xyz, radius.
 		data.append(center.x)
@@ -236,11 +289,11 @@ func create_sphere_buffer():
 		data.append(center.z)
 		data.append(radius)
 
-		# Second vec4: material ID, padding.
+		# Second vec4: material ID, rotation, orbital tilt, axial tilt.
 		data.append(float(material))
-		data.append(0.0)
-		data.append(0.0)
-		data.append(0.0)
+		data.append(rotation)
+		data.append(orbital_tilt)
+		data.append(axial_tilt)
 
 	var bytes = data.to_byte_array()
 
@@ -261,6 +314,8 @@ func update_sphere_buffer():
 		var radius: float = sphere["radius"]
 		var material: int = sphere["material"]
 		var rotation: float = sphere["rotation"]
+		var orbital_tilt: float = deg_to_rad(sphere["orbital_tilt"])
+		var axial_tilt: float = deg_to_rad(sphere["axial_tilt"])
 
 		data.append(center.x)
 		data.append(center.y)
@@ -269,8 +324,8 @@ func update_sphere_buffer():
 
 		data.append(float(material))
 		data.append(rotation)
-		data.append(0.0)
-		data.append(0.0)
+		data.append(orbital_tilt)
+		data.append(axial_tilt)
 
 	var bytes = data.to_byte_array()
 
